@@ -21,23 +21,23 @@ def generate_military_power(country: []):
     power += int(gdp * 10)
 
     # Adicione alguns países com poder especial
-    strong_countries = {
-        "United States": 100,
-        "Russia": 90,
-        "China": 95,
-        "India": 75,
-        "United Kingdom": 70,
-        "France": 70,
-        "Germany": 65,
-        "Japan": 60,
-        "Brazil": 55,
-        "South Korea": 65
-    }
+    # strong_countries = {
+    #     "United States": 100,
+    #     "Russia": 90,
+    #     "China": 95,
+    #     "India": 75,
+    #     "United Kingdom": 70,
+    #     "France": 70,
+    #     "Germany": 65,
+    #     "Japan": 60,
+    #     "Brazil": 55,
+    #     "South Korea": 65
+    # }
 
-    if country["name"] in strong_countries:
-        power = strong_countries[country["name"]]
+    # if country["name"] in strong_countries:
+    #     power = strong_countries[country["name"]]
 
     # Adicione um pouco de variação aleatória (±10%)
     power = int(power * (0.9 + random.random() * 0.2))
 
-    return power / 100
+    return round(power / 10000, 3)

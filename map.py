@@ -57,7 +57,7 @@ def load_geojson(filename):
         properties['militar'] = generate_military_power(feature['properties'])
         # properties['pib'] = random.uniform(0.5, 2.0)
         properties['pib'] = properties['gdp_md']
-        properties['territórios'] = 1
+        properties['territorios'] = 1
 
 
         # Gera uma cor aleatória para o país
@@ -108,12 +108,13 @@ def show_info():
         population = CountryUtils.get_pop(country=selected_country)
         pib = CountryUtils.get_pib(country=selected_country)
         pib_unity = Formatters().get_pib_unity(pib)
+        military_power = Formatters().format_number(str(selected_country['militar']))
 
         info_text = [
             f"Você está jogando com {selected_country['name']}",
             f"PIB: {pib} {pib_unity}",
-            f"Militar: {selected_country['militar']}",
-            f"Territórios: {selected_country['territórios']}",
+            f"Militar: {military_power}",
+            f"Territórios: {selected_country['territorios']}",
             f"População: {population}"
         ]
         for i, line in enumerate(info_text):
@@ -127,12 +128,13 @@ def show_hovered_info():
         population = CountryUtils.get_pop(country=hovered_country)
         pib = CountryUtils.get_pib(country=hovered_country)
         pib_unity = Formatters().get_pib_unity(pib)
+        military_power = Formatters().format_number(str(hovered_country['militar']))
 
         info_text = [
             f"País: {hovered_country['name_pt']}",
             f"PIB: {pib} {pib_unity}",
-            f"Militar: {hovered_country['militar']}",
-            f"Territórios: {hovered_country['territórios']}",
+            f"Militar: {military_power}",
+            f"Territórios: {hovered_country['territorios']}",
             f"População: {population}",
         ]
         for i, line in enumerate(info_text):
@@ -165,9 +167,9 @@ def attack_country(attacker, defender):
 
         attacker["pib"] += defender["pib"] * anexar_porcentagem
         attacker["militar"] += int(defender["militar"] * anexar_porcentagem)
-        attacker["territórios"] += defender["territórios"]
+        attacker["territorios"] += defender["territorios"]
 
-        defender["territórios"] = 0  # País conquistado
+        defender["territorios"] = 0  # País conquistado
         defender["militar"] = 0
         defender["pib"] = 0
         defender["color"] = attacker["color"]  # Mudança de cor para o país conquistador
@@ -209,7 +211,7 @@ while running:
                     hovered_country = country_properties
             elif event.button == 3:  # Botão direito do mouse
                 if selected_country and hovered_country and selected_country != hovered_country:
-                    if hovered_country["territórios"] > 0:
+                    if hovered_country["territorios"] > 0:
                         menu_visible = True
                         menu_position = event.pos
                 else:

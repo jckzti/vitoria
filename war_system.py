@@ -70,6 +70,7 @@ def calcular_turno_guerra(guerra, paises):
 
         atacante["pib"] += pib_transferido
         atacante["territorios"] += territorios_transferidos
+        atacante['militar'] += defensor["militar"] * 0.2
 
         defensor["pib"] -= pib_transferido
         defensor["territorios"] = 0

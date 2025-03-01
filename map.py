@@ -4,6 +4,7 @@ import random
 from shapely.geometry import shape, Point, Polygon, MultiPolygon
 import war_system
 from power_country import generate_military_power
+from utils.country_utils import CountryUtils
 from utils.formatters import Formatters
 
 # Inicializa o Pygame
@@ -104,16 +105,16 @@ def get_country_info_at(x, y):
 def show_info():
     """Mostra as informações do país selecionado."""
     if selected_country:
-        populacao = f"{selected_country['pop_est']:,}".replace(",", ".")
-        pib = f"{selected_country['pib']:,}".replace(",", ".")
+        population = CountryUtils.get_pop(country=selected_country)
+        pib = CountryUtils.get_pib(country=selected_country)
         pib_unity = Formatters().get_pib_unity(pib)
 
         info_text = [
             f"Você está jogando com {selected_country['name']}",
-            f"PIB: {pib} {pib_unity()}",
+            f"PIB: {pib} {pib_unity}",
             f"Militar: {selected_country['militar']}",
             f"Territórios: {selected_country['territórios']}",
-            f"População: {populacao}"
+            f"População: {population}"
         ]
         for i, line in enumerate(info_text):
             text = font.render(line, True, BLACK)
@@ -123,8 +124,8 @@ def show_info():
 def show_hovered_info():
     """Mostra as informações do país sobre o qual o mouse está passando."""
     if hovered_country:
-        population = f"{hovered_country['pop_est']:,}".replace(",", ".")
-        pib = f"{hovered_country['pib']:,}".replace(",", ".")
+        population = CountryUtils.get_pop(country=hovered_country)
+        pib = CountryUtils.get_pib(country=hovered_country)
         pib_unity = Formatters().get_pib_unity(pib)
 
         info_text = [

@@ -3,6 +3,8 @@ import json
 import random
 from shapely.geometry import shape, Point, Polygon, MultiPolygon
 import war_system
+from power_country import generate_military_power
+from utils.formatters import Formatters
 
 # Inicializa o Pygame
 pygame.init()
@@ -35,7 +37,6 @@ menu_visible = False
 menu_options = ["A - Atacar", "Z - Avançar"]
 menu_position = (0, 0)
 
-
 # Função para gerar uma cor aleatória
 def generate_random_color():
     return random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
@@ -51,8 +52,10 @@ def load_geojson(filename):
         properties = feature['properties']
 
         # Dados geopolíticos iniciais (poder militar, PIB, etc.)
-        properties['militar'] = random.randint(50, 100)
-        properties['pib'] = random.uniform(0.5, 2.0)
+        # properties['militar'] = random.randint(50, 100)
+        properties['militar'] = generate_military_power(feature['properties'])
+        # properties['pib'] = random.uniform(0.5, 2.0)
+        properties['pib'] = properties['gdp_md']
         properties['territórios'] = 1
 
 
@@ -102,10 +105,12 @@ def show_info():
     """Mostra as informações do país selecionado."""
     if selected_country:
         populacao = f"{selected_country['pop_est']:,}".replace(",", ".")
+        pib = f"{selected_country['pib']:,}".replace(",", ".")
+        pib_unity = Formatters().get_pib_unity(pib)
 
         info_text = [
             f"Você está jogando com {selected_country['name']}",
-            f"PIB: {selected_country['pib']} trilhões",
+            f"PIB: {pib} {pib_unity()}",
             f"Militar: {selected_country['militar']}",
             f"Territórios: {selected_country['territórios']}",
             f"População: {populacao}"
@@ -119,10 +124,12 @@ def show_hovered_info():
     """Mostra as informações do país sobre o qual o mouse está passando."""
     if hovered_country:
         population = f"{hovered_country['pop_est']:,}".replace(",", ".")
+        pib = f"{hovered_country['pib']:,}".replace(",", ".")
+        pib_unity = Formatters().get_pib_unity(pib)
 
         info_text = [
             f"País: {hovered_country['name_pt']}",
-            f"PIB: {hovered_country['pib']} trilhões",
+            f"PIB: {pib} {pib_unity}",
             f"Militar: {hovered_country['militar']}",
             f"Territórios: {hovered_country['territórios']}",
             f"População: {population}",

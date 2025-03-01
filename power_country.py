@@ -1,13 +1,13 @@
 import random
 
 
-def generate_military_power(country):
+def generate_military_power(country: []):
     # Base inicial
     power = random.randint(10, 30)
 
     # Fatores de influência
     population = country["pop_est"]
-    gdp = country["pib"]
+    gdp = country["gdp_md"]
 
     # População influencia (mais população = mais soldados potenciais)
     if population > 100000000:  # +100 milhões
@@ -40,4 +40,4 @@ def generate_military_power(country):
     # Adicione um pouco de variação aleatória (±10%)
     power = int(power * (0.9 + random.random() * 0.2))
 
-    return power
+    return power / 100

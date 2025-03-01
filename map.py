@@ -38,7 +38,7 @@ menu_position = (0, 0)
 
 # Função para gerar uma cor aleatória
 def generate_random_color():
-    return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+    return random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
 
 
 # Função para carregar o JSON e preparar os dados

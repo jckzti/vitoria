@@ -3,3 +3,4 @@ custom.geo.json
 game.py
 vitoria.zip
 .idea/
+__pycache__/

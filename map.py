@@ -2,6 +2,7 @@ import pygame
 import json
 import random
 from shapely.geometry import shape, Point, Polygon, MultiPolygon
+import war_system
 
 # Inicializa o Pygame
 pygame.init()
@@ -31,7 +32,7 @@ hovered_country = None  # País sobre o qual o mouse está passando
 
 # Menu de ações
 menu_visible = False
-menu_options = ["Atacar"]
+menu_options = ["A - Atacar", "Z - Avançar"]
 menu_position = (0, 0)
 
 
@@ -133,7 +134,7 @@ def show_hovered_info():
 
 def show_battle_log(log):
     """Mostra o resultado das batalhas."""
-    battle_text = font.render(log, True, WHITE)
+    battle_text = font.render(log, True, BLACK)
     screen.blit(battle_text, (20, window_size[1] - 40))
 
 
@@ -180,6 +181,7 @@ load_geojson('custom.geo.json')
 # Loop principal do jogo
 running = True
 battle_log = ""
+guerras_ativas = []
 while running:
     screen.fill(LIGHT_SEA_BLUE)
     draw_countries(screen)
@@ -214,9 +216,22 @@ while running:
             if event.key == pygame.K_RETURN and hovered_country:
                 selected_country = hovered_country
             elif event.key == pygame.K_a and menu_visible:
+                # if selected_country and hovered_country and selected_country != hovered_country:
+                #     battle_log = attack_country(selected_country, hovered_country)
+                #     menu_visible = False
                 if selected_country and hovered_country and selected_country != hovered_country:
-                    battle_log = attack_country(selected_country, hovered_country)
+                    # Inicia a guerra em vez de um ataque único
+                    nova_guerra = war_system.iniciar_guerra(selected_country, hovered_country)
+                    guerras_ativas.append(nova_guerra)
+                    battle_log = f"Guerra iniciada: {selected_country['name']} vs {hovered_country['name']}"
                     menu_visible = False
+            elif event.key == pygame.K_z:
+                # Avança as guerras existentes
+                for guerra in guerras_ativas:
+                    if guerra["em_andamento"]:
+                        resultado = war_system.calcular_turno_guerra(guerra, country_info)
+                        if resultado:
+                            battle_log = resultado
 
     pygame.display.flip()
 

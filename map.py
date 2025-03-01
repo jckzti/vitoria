@@ -156,33 +156,33 @@ def show_menu():
             screen.blit(text, (menu_position[0], menu_position[1] + i * 20))
 
 
-def attack_country(attacker, defender):
-    """Simula um ataque de um país a outro."""
-    poder_atacante = attacker["militar"] + random.randint(-10, 20)
-    poder_defensor = defender["militar"] + random.randint(-10, 20)
-
-    if poder_atacante > poder_defensor:
-        # Sucesso no ataque: anexar parte do PIB e força militar
-        anexar_porcentagem = 0.3  # 30% de anexação
-
-        attacker["pib"] += defender["pib"] * anexar_porcentagem
-        attacker["militar"] += int(defender["militar"] * anexar_porcentagem)
-        attacker["territorios"] += defender["territorios"]
-
-        defender["territorios"] = 0  # País conquistado
-        defender["militar"] = 0
-        defender["pib"] = 0
-        defender["color"] = attacker["color"]  # Mudança de cor para o país conquistador
-
-        log = f"{attacker['name']} anexou {defender['name']} com sucesso!"
-    else:
-        log = f"{defender['name']} defendeu com sucesso o ataque de {attacker['name']}!"
-
-    # Atualização da força militar e PIB do atacante devido ao custo do ataque
-    attacker["militar"] -= int(attacker["militar"] * 0.1)  # 10% de perda militar
-    attacker["pib"] -= attacker["pib"] * 0.05  # 5% de perda no PIB
-
-    return log
+# def attack_country(attacker, defender):
+#     """Simula um ataque de um país a outro."""
+#     poder_atacante = attacker["militar"] + random.randint(-10, 20)
+#     poder_defensor = defender["militar"] + random.randint(-10, 20)
+#
+#     if poder_atacante > poder_defensor:
+#         # Sucesso no ataque: anexar parte do PIB e força militar
+#         anexar_porcentagem = 0.3  # 30% de anexação
+#
+#         attacker["pib"] += defender["pib"] * anexar_porcentagem
+#         attacker["militar"] += int(defender["militar"] * anexar_porcentagem)
+#         attacker["territorios"] += defender["territorios"]
+#
+#         defender["territorios"] = 0  # País conquistado
+#         defender["militar"] = 0
+#         defender["pib"] = 0
+#         defender["color"] = attacker["color"]  # Mudança de cor para o país conquistador
+#
+#         log = f"{attacker['name']} anexou {defender['name']} com sucesso!"
+#     else:
+#         log = f"{defender['name']} defendeu com sucesso o ataque de {attacker['name']}!"
+#
+#     # Atualização da força militar e PIB do atacante devido ao custo do ataque
+#     attacker["militar"] -= int(attacker["militar"] * 0.1)  # 10% de perda militar
+#     attacker["pib"] -= attacker["pib"] * 0.05  # 5% de perda no PIB
+#
+#     return log
 
 
 # Carrega o GeoJSON

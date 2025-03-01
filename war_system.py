@@ -19,7 +19,7 @@ def iniciar_guerra(atacante, defensor):
     return guerra
 
 
-def calcular_turno_guerra(guerra, paises):
+def calcular_turno_guerra(guerra, paises) -> tuple[str, bool: False]:
     """Calcula um turno da guerra."""
     if not guerra["em_andamento"]:
         return
@@ -59,13 +59,13 @@ def calcular_turno_guerra(guerra, paises):
     atacante["militar"] = max(0, int(guerra["forca_atacante"]))
     defensor["militar"] = max(0, int(guerra["forca_defensora"]))
 
-    # Verificar se alguém se rendeu
+    # Verificar se alguém se rendeu ou perder e transfere recursos
     if guerra["forca_defensora"] < guerra["forca_atacante"] * 0.3:
         guerra["em_andamento"] = False
         guerra["log_guerra"].append(f"Turno {guerra['turno_atual']}: {defensor['name']} se rendeu!")
 
         # Transferir recursos
-        pib_transferido = defensor["pib"] * 0.4
+        pib_transferido = round(defensor["pib"] * 0.4)
         territorios_transferidos = defensor["territorios"]
 
         atacante["pib"] += pib_transferido
@@ -76,7 +76,7 @@ def calcular_turno_guerra(guerra, paises):
         defensor["territorios"] = 0
         defensor["color"] = atacante["color"]  # País conquistado
 
-        return f"{defensor['name']} se rendeu para {atacante['name']}! Território anexado."
+        return f"{defensor['name']} se rendeu para {atacante['name']}! Território anexado.", True
 
     # Verificar se o atacante desistiu
     if guerra["forca_atacante"] < guerra["forca_defensora"] * 0.2:
@@ -87,7 +87,7 @@ def calcular_turno_guerra(guerra, paises):
         atacante["pib"] -= atacante["pib"] * 0.1
         atacante["militar"] -= atacante["militar"] * 0.1
 
-        return f"{atacante['name']} recuou da invasão a {defensor['name']}!"
+        return f"{atacante['name']} recuou da invasão a {defensor['name']}!", False
 
     # Avançar turno
     guerra["turno_atual"] += 1
@@ -111,9 +111,9 @@ def calcular_turno_guerra(guerra, paises):
 
             return f"Vitória de {atacante['name']} após uma guerra prolongada!"
         else:
-            return f"{defensor['name']} defendeu seu território com sucesso!"
+            return f"{defensor['name']} defendeu seu território com sucesso!", False
 
     # Retornar log do turno atual
     log = f"Turno {guerra['turno_atual'] - 1}: {atacante['name']} {prejuizo_atacante} perdas, {defensor['name']} {prejuizo_defensor} perdas"
     guerra["log_guerra"].append(log)
-    return log
+    return log, False

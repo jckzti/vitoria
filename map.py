@@ -86,6 +86,12 @@ def load_geojson(filename):
             country_info[tuple(points)] = properties
 
 
+def refresh_country_colors():
+    for country_name, shapes in country_shapes.items():
+        new_color = country_info[tuple(shapes[0][0])]["color"]  # Pega a cor atual do país
+        country_shapes[country_name] = [(points, new_color) for points, _ in shapes]
+
+
 # Função para desenhar os países no Pygame
 def draw_countries(screen):
     for country_name, shapes in country_shapes.items():
@@ -239,9 +245,11 @@ while running:
                 # Avança as guerras existentes
                 for guerra in guerras_ativas:
                     if guerra["em_andamento"]:
-                        resultado = war_system.calcular_turno_guerra(guerra, country_info)
+                        resultado, change_color = war_system.calcular_turno_guerra(guerra, country_info)
                         if resultado:
                             battle_log = resultado
+                            if change_color:
+                                refresh_country_colors()
 
     pygame.display.flip()
 

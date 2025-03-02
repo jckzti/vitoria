@@ -1,5 +1,7 @@
 import random
 
+RENDICAO_LIMIAR = 0.3
+
 def iniciar_guerra(atacante, defensor):
     """Inicia uma guerra entre dois paises que dura vários turnos."""
     # Cria um objeto de guerra que será armazenado e atualizado
@@ -60,7 +62,7 @@ def calcular_turno_guerra(guerra, paises) -> tuple[str, bool: False]:
     defensor["militar"] = max(0, int(guerra["forca_defensora"]))
 
     # Verificar se alguém se rendeu ou perder e transfere recursos
-    if guerra["forca_defensora"] < guerra["forca_atacante"] * 0.3:
+    if guerra["forca_defensora"] < guerra["forca_atacante"] * RENDICAO_LIMIAR:
         guerra["em_andamento"] = False
         guerra["log_guerra"].append(f"Turno {guerra['turno_atual']}: {defensor['name']} se rendeu!")
 
@@ -109,7 +111,7 @@ def calcular_turno_guerra(guerra, paises) -> tuple[str, bool: False]:
             defensor["pib"] -= pib_transferido
             defensor["territorios"] -= territorios_transferidos
 
-            return f"Vitória de {atacante['name']} após uma guerra prolongada!"
+            return f"Vitória de {atacante['name']} após uma guerra prolongada!", True
         else:
             return f"{defensor['name']} defendeu seu território com sucesso!", False
 

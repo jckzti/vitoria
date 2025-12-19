@@ -40,6 +40,15 @@ hovered_country = None   # País sob o cursor do mouse
 guerras_ativas = []
 battle_log = ""
 
+# Camera Control
+camera_offset_x = 0
+camera_offset_y = 0
+zoom_scale = 1.0
+min_zoom = 0.5
+max_zoom = 10.0
+dragging = False
+last_mouse_pos = (0, 0)
+
 # Sistema de Tempo
 game_time = GameTime()
 
@@ -97,6 +106,7 @@ def load_geojson(filename):
             for coord in polygon.exterior.coords:
                 x, y = coord
                 # Ajuste de escala e translação
+                # These are now "World Coordinates" (Base scale)
                 x = int((x + 180) * (window_size[0] / 360))
                 y = int((90 - y) * (window_size[1] / 180))
                 points.append((x, y))
@@ -114,18 +124,42 @@ def refresh_country_colors():
             new_color = country_info[tuple(first_shape_points)]["color"]
             country_shapes[country_name] = [(points, new_color) for points, _ in shapes]
 
+# Coordinate Transformations
+def world_to_screen(x, y):
+    return (int(x * zoom_scale + camera_offset_x), int(y * zoom_scale + camera_offset_y))
+
+def screen_to_world(x, y):
+    return ((x - camera_offset_x) / zoom_scale, (y - camera_offset_y) / zoom_scale)
 
 # Função para desenhar os países no Pygame
 def draw_countries(screen):
     for country_name, shapes in country_shapes.items():
         for shape_data, color in shapes:
-            pygame.draw.polygon(screen, color, shape_data, 0)  # Preenche o polígono com a cor
+            # Transform points to screen space
+            transformed_points = [world_to_screen(p[0], p[1]) for p in shape_data]
+            
+            # Simple culling: check if any point is within screen bounds + padding
+            # This is a very rough optimization
+            xs = [p[0] for p in transformed_points]
+            ys = [p[1] for p in transformed_points]
+            min_x, max_x = min(xs), max(xs)
+            min_y, max_y = min(ys), max(ys)
+            
+            if max_x < 0 or min_x > window_size[0] or max_y < 0 or min_y > window_size[1]:
+                continue
+                
+            pygame.draw.polygon(screen, color, transformed_points, 0)  # Preenche o polígono com a cor
 
 
 # Função para obter as propriedades do país sob o mouse
-def get_country_info_at(x, y):
-    point = Point(x, y)
+def get_country_info_at(screen_x, screen_y):
+    # Convert screen click to world coordinates
+    world_x, world_y = screen_to_world(screen_x, screen_y)
+    point = Point(world_x, world_y)
+    
     for shape_data, properties in country_info.items():
+        # Polygon creation is heavy, but Shapely is reasonably fast for point-in-polygon
+        # Optimization: Check bounding box of shape_data first if needed
         if Polygon(shape_data).contains(point):
             return properties
     return None
@@ -297,6 +331,25 @@ while running:
              for i, item in enumerate(time_buttons):
                  item['btn'].rect.topleft = (window_size[0] - 320 + (i * 50), 20)
         
+        elif event.type == pygame.MOUSEWHEEL:
+            # Zoom logic
+            old_zoom = zoom_scale
+            if event.y > 0:
+                zoom_scale *= 1.1
+            elif event.y < 0:
+                zoom_scale /= 1.1
+            
+            # Clamp zoom
+            zoom_scale = max(min_zoom, min(zoom_scale, max_zoom))
+            
+            # Zoom towards mouse cursor
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            
+            # Adjust offset so the point under mouse stays stationary
+            # formula: new_offset = mouse - (mouse - old_offset) * (new_zoom / old_zoom)
+            camera_offset_x = mouse_x - (mouse_x - camera_offset_x) * (zoom_scale / old_zoom)
+            camera_offset_y = mouse_y - (mouse_y - camera_offset_y) * (zoom_scale / old_zoom)
+
         # Click Handling
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:  # Left Click
@@ -348,14 +401,30 @@ while running:
                         context_menu.show(event.pos, [
                             {'text': 'Atacar', 'action': 'attack'}
                         ])
+            
+            elif event.button == 2: # Middle click to start drag
+                dragging = True
+                last_mouse_pos = event.pos
 
-        # Mouse Motion (Hover)
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 2:
+                dragging = False
+
+        # Mouse Motion (Hover & Drag)
         elif event.type == pygame.MOUSEMOTION:
-            country_properties = get_country_info_at(*event.pos)
-            if country_properties:
-                hovered_country = country_properties
+            if dragging:
+                mx, my = event.pos
+                dx = mx - last_mouse_pos[0]
+                dy = my - last_mouse_pos[1]
+                camera_offset_x += dx
+                camera_offset_y += dy
+                last_mouse_pos = event.pos
             else:
-                hovered_country = None
+                country_properties = get_country_info_at(*event.pos)
+                if country_properties:
+                    hovered_country = country_properties
+                else:
+                    hovered_country = None
         
         # Key Handling (Atalhos de teclado opcionais)
         elif event.type == pygame.KEYDOWN:

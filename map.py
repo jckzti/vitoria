@@ -3,6 +3,7 @@ import json
 import random
 from shapely.geometry import shape, Point, Polygon, MultiPolygon
 import war_system
+import economy_system
 from power_country import generate_military_power
 from utils.country_utils import CountryUtils
 from utils.formatters import Formatters
@@ -248,6 +249,9 @@ while running:
     new_day = game_time.update(dt)
     
     if new_day:
+        # Process economy and military growth
+        economy_system.processar_crescimento_diario(country_info)
+
         # Process active wars
         for guerra in guerras_ativas:
             if guerra["em_andamento"]:

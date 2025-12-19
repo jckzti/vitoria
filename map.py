@@ -6,6 +6,7 @@ import war_system
 from power_country import generate_military_power
 from utils.country_utils import CountryUtils
 from utils.formatters import Formatters
+from utils.ui import Button, ContextMenu
 
 # Inicializa o Pygame
 pygame.init()
@@ -29,14 +30,18 @@ country_info = {}
 # Fonte para textos
 font = pygame.font.Font(None, 24)
 
-# País selecionado pelo jogador
-selected_country = None
-hovered_country = None  # País sobre o qual o mouse está passando
+# Estado do Jogo
+player_country = None    # País com o qual o jogador está jogando
+inspected_country = None # País atualmente clicado/focado pelo jogador
+hovered_country = None   # País sob o cursor do mouse
 
-# Menu de ações
-menu_visible = False
-menu_options = ["A - Atacar", "Z - Avançar"]
-menu_position = (0, 0)
+# UI Elements
+btn_choose_country = Button(
+    window_size[0] - 220, window_size[1] - 80, 200, 50,
+    "Escolher País", font, bg_color=(0, 200, 0), text_color=WHITE
+)
+
+context_menu = ContextMenu(font)
 
 # Função para gerar uma cor aleatória
 def generate_random_color():
@@ -109,86 +114,76 @@ def get_country_info_at(x, y):
 
 
 def show_info():
-    """Mostra as informações do país selecionado."""
-    if selected_country:
-        population = CountryUtils.get_pop(country=selected_country)
-        pib = CountryUtils.get_pib(country=selected_country)
+    """Mostra as informações do país que o jogador controla."""
+    if player_country:
+        population = CountryUtils.get_pop(country=player_country)
+        pib = CountryUtils.get_pib(country=player_country)
         pib_unity = Formatters().get_pib_unity(pib)
-        military_power = Formatters().format_number(str(selected_country['militar']))
+        military_power = Formatters().format_number(str(player_country['militar']))
 
         info_text = [
-            f"Você está jogando com {selected_country['name']}",
+            f"JOGANDO COM: {player_country['name'].upper()}",
             f"PIB: {pib} {pib_unity}",
             f"Militar: {military_power}",
-            f"Territórios: {selected_country['territorios']}",
+            f"Territórios: {player_country['territorios']}",
             f"População: {population}"
         ]
+        
+        # Desenha um fundo semi-transparente ou sólido para destacar
+        bg_rect = pygame.Rect(10, 10, 300, 20 + len(info_text) * 20)
+        pygame.draw.rect(screen, (240, 240, 240), bg_rect)
+        pygame.draw.rect(screen, BLACK, bg_rect, 2)
+
         for i, line in enumerate(info_text):
             text = font.render(line, True, BLACK)
-            screen.blit(text, (80, 50 + i * 20))
-
+            screen.blit(text, (20, 20 + i * 20))
 
 def show_hovered_info():
-    """Mostra as informações do país sobre o qual o mouse está passando."""
-    if hovered_country:
-        population = CountryUtils.get_pop(country=hovered_country)
-        pib = CountryUtils.get_pib(country=hovered_country)
+    """Mostra as informações do país sob o mouse ou inspecionado."""
+    # Prioridade: País inspecionado (clicado) > País sob o mouse
+    target = inspected_country if inspected_country else hovered_country
+    
+    if target:
+        population = CountryUtils.get_pop(country=target)
+        pib = CountryUtils.get_pib(country=target)
         pib_unity = Formatters().get_pib_unity(pib)
-        military_power = Formatters().format_number(str(hovered_country['militar']))
+        military_power = Formatters().format_number(str(target['militar']))
 
+        header = "INSPECIONANDO:" if target == inspected_country else "HOVER:"
+        
         info_text = [
-            f"País: {hovered_country['name_pt']}",
+            f"{header} {target['name_pt'] if 'name_pt' in target else target['name']}",
             f"PIB: {pib} {pib_unity}",
             f"Militar: {military_power}",
-            f"Territórios: {hovered_country['territorios']}",
+            f"Territórios: {target['territorios']}",
             f"População: {population}",
         ]
+        
+        # Posição inferior esquerda
+        start_y = window_size[1] - 150
+        bg_rect = pygame.Rect(10, start_y - 10, 300, 20 + len(info_text) * 20)
+        pygame.draw.rect(screen, (240, 240, 240), bg_rect)
+        pygame.draw.rect(screen, BLACK, bg_rect, 2)
+
         for i, line in enumerate(info_text):
             text = font.render(line, True, BLACK)
-            screen.blit(text, (80, (screen.get_height() - 200) + i * 20))
+            screen.blit(text, (20, start_y + i * 20))
 
 
 def show_battle_log(log):
     """Mostra o resultado das batalhas."""
+    if not log:
+        return
     battle_text = font.render(log, True, BLACK)
-    screen.blit(battle_text, (20, window_size[1] - 40))
-
-
-def show_menu():
-    """Exibe o menu de ações ao clicar com o botão direito."""
-    if menu_visible:
-        for i, option in enumerate(menu_options):
-            text = font.render(option, True, WHITE)
-            screen.blit(text, (menu_position[0], menu_position[1] + i * 20))
-
-
-# def attack_country(attacker, defender):
-#     """Simula um ataque de um país a outro."""
-#     poder_atacante = attacker["militar"] + random.randint(-10, 20)
-#     poder_defensor = defender["militar"] + random.randint(-10, 20)
-#
-#     if poder_atacante > poder_defensor:
-#         # Sucesso no ataque: anexar parte do PIB e força militar
-#         anexar_porcentagem = 0.3  # 30% de anexação
-#
-#         attacker["pib"] += defender["pib"] * anexar_porcentagem
-#         attacker["militar"] += int(defender["militar"] * anexar_porcentagem)
-#         attacker["territorios"] += defender["territorios"]
-#
-#         defender["territorios"] = 0  # País conquistado
-#         defender["militar"] = 0
-#         defender["pib"] = 0
-#         defender["color"] = attacker["color"]  # Mudança de cor para o país conquistador
-#
-#         log = f"{attacker['name']} anexou {defender['name']} com sucesso!"
-#     else:
-#         log = f"{defender['name']} defendeu com sucesso o ataque de {attacker['name']}!"
-#
-#     # Atualização da força militar e PIB do atacante devido ao custo do ataque
-#     attacker["militar"] -= int(attacker["militar"] * 0.1)  # 10% de perda militar
-#     attacker["pib"] -= attacker["pib"] * 0.05  # 5% de perda no PIB
-#
-#     return log
+    # Centralizado na parte inferior
+    text_rect = battle_text.get_rect(center=(window_size[0] // 2, window_size[1] - 40))
+    
+    # Fundo para leitura
+    bg_rect = text_rect.inflate(20, 10)
+    pygame.draw.rect(screen, (255, 255, 255), bg_rect)
+    pygame.draw.rect(screen, BLACK, bg_rect, 1)
+    
+    screen.blit(battle_text, text_rect)
 
 
 # Carrega o GeoJSON
@@ -198,51 +193,78 @@ load_geojson('custom.geo.json')
 running = True
 battle_log = ""
 guerras_ativas = []
+
 while running:
     screen.fill(LIGHT_SEA_BLUE)
     draw_countries(screen)
+    
     show_info()
     show_hovered_info()
     show_battle_log(battle_log)
-    show_menu()
+    
+    # Desenha botão de escolher se houver um país inspecionado e ele não for o atual
+    if inspected_country and inspected_country != player_country:
+        btn_choose_country.draw(screen)
+
+    # Desenha menu de contexto
+    context_menu.draw(screen)
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        
+        # Click Handling
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:  # Botão esquerdo do mouse
-                menu_visible = False
-                country_properties = get_country_info_at(*event.pos)
-                if country_properties:
-                    hovered_country = country_properties
-            elif event.button == 3:  # Botão direito do mouse
-                if selected_country and hovered_country and selected_country != hovered_country:
-                    if hovered_country["territorios"] > 0:
-                        menu_visible = True
-                        menu_position = event.pos
+            if event.button == 1:  # Left Click
+                # 1. Check UI Interaction (Context Menu)
+                action = context_menu.handle_click(event)
+                if action == 'attack':
+                    if player_country and inspected_country and player_country != inspected_country:
+                         # Inicia a guerra
+                        nova_guerra = war_system.iniciar_guerra(player_country, inspected_country)
+                        guerras_ativas.append(nova_guerra)
+                        battle_log = f"Guerra iniciada: {player_country['name']} vs {inspected_country['name']}"
+
+                # 2. Check UI Interaction (Choose Button)
+                elif inspected_country and inspected_country != player_country and btn_choose_country.is_clicked(event):
+                    player_country = inspected_country
+                    battle_log = f"Você escolheu jogar com: {player_country['name']}"
+                    inspected_country = None # Limpa a inspeção após escolher
+
+                # 3. Check Map Interaction (Select/Inspect Country)
                 else:
-                    menu_visible = False
+                    # Se clicou fora do menu, ele já fecha (no handle_click)
+                    # Verifica se clicou num país
+                    country_properties = get_country_info_at(*event.pos)
+                    if country_properties:
+                        inspected_country = country_properties
+                        # Se clicar num país, fecha menu anterior se existir (já feito pelo handle_click logicamente, mas garantindo)
+                        context_menu.hide()
+
+            elif event.button == 3:  # Right Click
+                if player_country:
+                    country_properties = get_country_info_at(*event.pos)
+                    if country_properties and country_properties != player_country:
+                        # Define este país como o inspecionado também, para facilitar
+                        inspected_country = country_properties
+                        
+                        # Abre menu de contexto
+                        context_menu.show(event.pos, [
+                            {'text': 'Atacar', 'action': 'attack'}
+                        ])
+
+        # Mouse Motion (Hover)
         elif event.type == pygame.MOUSEMOTION:
             country_properties = get_country_info_at(*event.pos)
             if country_properties:
                 hovered_country = country_properties
             else:
                 hovered_country = None
+        
+        # Key Handling (Apenas atalhos globais úteis, sem ações de jogo escondidas)
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_RETURN and hovered_country:
-                selected_country = hovered_country
-            elif event.key == pygame.K_a and menu_visible:
-                # if selected_country and hovered_country and selected_country != hovered_country:
-                #     battle_log = attack_country(selected_country, hovered_country)
-                #     menu_visible = False
-                if selected_country and hovered_country and selected_country != hovered_country:
-                    # Inicia a guerra em vez de um ataque único
-                    nova_guerra = war_system.iniciar_guerra(selected_country, hovered_country)
-                    guerras_ativas.append(nova_guerra)
-                    battle_log = f"Guerra iniciada: {selected_country['name']} vs {hovered_country['name']}"
-                    menu_visible = False
-            elif event.key == pygame.K_z:
-                # Avança as guerras existentes
+            if event.key == pygame.K_z:
+                # Avança as guerras existentes (Manter este por enquanto, talvez adicionar botão depois)
                 for guerra in guerras_ativas:
                     if guerra["em_andamento"]:
                         resultado, change_color = war_system.calcular_turno_guerra(guerra, country_info)

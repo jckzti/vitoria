@@ -41,11 +41,12 @@ pip install pygame shapely
    ```
 
 2. **Controles**:
-   - **Botão Esquerdo do Mouse**: Selecionar um país (mostra informações no topo).
-   - **Mouse Sobre**: Mostra informações do país sob o cursor (na parte inferior).
-   - **Botão Direito do Mouse**: Abre o menu de ações (ao clicar em um país inimigo tendo um país selecionado).
-   - **Tecla 'A'**: Iniciar ataque (quando o menu estiver aberto).
-   - **Tecla 'Z'**: Avançar turno das guerras em andamento.
+   - **Botão Esquerdo do Mouse**:
+    - Clique em um país para inspecioná-lo.
+    - Se ainda não escolheu um país, clique no botão "Escolher País" no canto inferior direito para jogar com ele.
+  - **Botão Direito do Mouse**: Abre o menu de ações ao clicar em um país inimigo (apenas se já estiver jogando com um país).
+  - **Mouse Sobre**: Mostra informações rápidas do país sob o cursor.
+  - **Tecla 'Z'**: Avançar turno das guerras em andamento.
 
 ## 📂 Estrutura do Projeto
 

@@ -126,27 +126,54 @@ def refresh_country_colors():
             new_color = country_info[tuple(first_shape_points)]["color"]
             country_shapes[country_name] = [(points, new_color) for points, _ in shapes]
 
-def get_flag_image(iso_code):
-    if not iso_code or iso_code == -99:
+def get_flag_image(properties):
+    if not properties:
         return None
+        
+    # Tenta vários códigos ISO possíveis
+    candidates = []
     
-    iso_code = str(iso_code).lower()
-    if iso_code in flag_cache:
-        return flag_cache[iso_code]
-    
-    path = os.path.join("assets", "flags", f"{iso_code}.png")
-    if os.path.exists(path):
-        try:
-            img = pygame.image.load(path)
-            # Redimensiona para algo razoável (largura 50)
-            w = 50
-            ratio = img.get_height() / img.get_width()
-            h = int(w * ratio)
-            img = pygame.transform.smoothscale(img, (w, h))
-            flag_cache[iso_code] = img
-            return img
-        except:
-            return None
+    # 1. iso_a2 (padrão)
+    if 'iso_a2' in properties and properties['iso_a2'] != -99 and properties['iso_a2'] != "-99":
+        candidates.append(str(properties['iso_a2']).lower())
+        
+    # 2. iso_a2_eh (fallback comum)
+    if 'iso_a2_eh' in properties and properties['iso_a2_eh'] != -99 and properties['iso_a2_eh'] != "-99":
+        candidates.append(str(properties['iso_a2_eh']).lower())
+
+    # 3. wb_a2 (World Bank)
+    if 'wb_a2' in properties and properties['wb_a2'] != -99 and properties['wb_a2'] != "-99":
+        candidates.append(str(properties['wb_a2']).lower())
+        
+    for iso_code in candidates:
+        if iso_code in flag_cache:
+            return flag_cache[iso_code]
+        
+        path = os.path.join("assets", "flags", f"{iso_code}.png")
+        if os.path.exists(path):
+            try:
+                img = pygame.image.load(path).convert_alpha()
+                # Redimensiona para algo razoável (largura 50)
+                w = 50
+                ratio = img.get_height() / img.get_width()
+                h = int(w * ratio)
+                img = pygame.transform.smoothscale(img, (w, h))
+                flag_cache[iso_code] = img
+                return img
+            except Exception as e:
+                # Se falhar o smoothscale, tenta scale normal
+                try:
+                    img = pygame.image.load(path)
+                    w = 50
+                    ratio = img.get_height() / img.get_width()
+                    h = int(w * ratio)
+                    img = pygame.transform.scale(img, (w, h))
+                    flag_cache[iso_code] = img
+                    return img
+                except:
+                    print(f"DEBUG: Error loading flag {path}: {e}")
+                    continue
+                
     return None
 
 # Coordinate Transformations
@@ -228,7 +255,7 @@ def show_info():
         pib_unity = Formatters().get_pib_unity(pib)
         military_power = Formatters().format_number(str(player_country['militar']))
 
-        flag = get_flag_image(player_country.get('iso_a2'))
+        flag = get_flag_image(player_country)
         
         info_text = [
             f"JOGANDO COM: {player_country['name'].upper()}",
@@ -267,7 +294,7 @@ def show_hovered_info():
         pib_unity = Formatters().get_pib_unity(pib)
         military_power = Formatters().format_number(str(target['militar']))
         
-        flag = get_flag_image(target.get('iso_a2'))
+        flag = get_flag_image(target)
 
         header = "INSPECIONANDO:" if target == inspected_country else "HOVER:"
         

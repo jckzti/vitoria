@@ -1,35 +1,41 @@
 import random
 
-RENDICAO_LIMIAR = 0.3
+# Constantes de Balanceamento
+DEFENDER_BONUS_MULTIPLIER = 1.25  # +25% de eficiência defensiva (trincheiras, etc)
+BASE_ATTRITION = 0.05  # 5% de perdas base por turno
+GDP_QUALITY_FACTOR = 0.000001  # Fator de qualidade por PIB (ajustar conforme escala do PIB)
+MIN_TROOPS_FOR_WAR = 100
 
 def iniciar_guerra(atacante, defensor):
-    """Inicia uma guerra entre dois paises que dura vários turnos."""
-    # Cria um objeto de guerra que será armazenado e atualizado
+    """Inicia uma guerra entre dois paises."""
     guerra = {
         "atacante": atacante["name"],
         "defensor": defensor["name"],
-        "forca_atacante": atacante["militar"],
-        "forca_defensora": defensor["militar"],
-        "turno_atual": 1,
-        "max_turnos": 5,  # Limite de turnos para a guerra
+        # Força inicial para referência
+        "forca_inicial_atacante": atacante["militar"],
+        "forca_inicial_defensora": defensor["militar"],
+        "data_inicio": None, # Será preenchido pelo map.py com a data atual
+        "dias_de_guerra": 0,
         "log_guerra": [],
         "em_andamento": True
     }
 
-    # Adiciona log inicial
     guerra["log_guerra"].append(f"Guerra iniciada: {atacante['name']} vs {defensor['name']}")
     return guerra
 
 
-def calcular_turno_guerra(guerra, paises) -> tuple[str, bool: False]:
-    """Calcula um turno da guerra."""
+def processar_dia_guerra(guerra, paises):
+    """
+    Processa um dia de combate.
+    Retorna (mensagem_log, guerra_acabou, mudanca_de_cor)
+    """
     if not guerra["em_andamento"]:
-        return
+        return None, False, False
 
     atacante = None
     defensor = None
 
-    # Encontra os paises pelos nomes
+    # Encontra os paises atualizados
     for nome, propriedades in paises.items():
         if propriedades["name"] == guerra["atacante"]:
             atacante = propriedades
@@ -38,84 +44,71 @@ def calcular_turno_guerra(guerra, paises) -> tuple[str, bool: False]:
 
     if not atacante or not defensor:
         guerra["em_andamento"] = False
-        guerra["log_guerra"].append("Guerra encerrada: país não encontrado")
-        return
+        return "Erro: País não encontrado", True, False
 
-    # Calcular forcas com um pouco de aleatoriedade
-    forca_ataque = guerra["forca_atacante"] * (0.8 + random.random() * 0.4)  # 80-120%
-    forca_defesa = guerra["forca_defensora"] * (1.0 + random.random() * 0.5)  # 100-150%, defensor tem vantagem
+    # 1. Cálculo de Eficiência Militar baseada no PIB (Qualidade do Equipamento)
+    # Quanto maior o PIB per capita (ou total simplificado), menor a perda de tropas
+    qualidade_atacante = 1.0 + (atacante.get("pib", 0) * GDP_QUALITY_FACTOR)
+    qualidade_defensor = 1.0 + (defensor.get("pib", 0) * GDP_QUALITY_FACTOR)
 
-    # Calcular prejuizos
-    prejuizo_atacante = max(5, int(guerra["forca_defensora"] * 0.1 * random.random()))
-    prejuizo_defensor = max(5, int(guerra["forca_atacante"] * 0.15 * random.random()))
+    # 2. Fatores de Batalha (Random + Tamanho do Exército)
+    # A força efetiva é a quantidade de soldados * qualidade
+    forca_efetiva_atk = atacante["militar"] * qualidade_atacante
+    forca_efetiva_def = defensor["militar"] * qualidade_defensor * DEFENDER_BONUS_MULTIPLIER
+    
+    # 3. Cálculo de Baixas (Attrition)
+    # O dano causado é proporcional à força do inimigo
+    # Random factor 0.8 a 1.2
+    fator_sorte_atk = random.uniform(0.8, 1.2)
+    fator_sorte_def = random.uniform(0.9, 1.3) # Defensor tem leve vantagem na sorte (terreno conhecido)
 
-    # Vantagem para o atacante se tiver muito mais forca
-    if guerra["forca_atacante"] > guerra["forca_defensora"] * 2:
-        prejuizo_defensor *= 1.5
+    # Perdas baseadas na força inimiga
+    baixas_atacante = int((forca_efetiva_def * 0.002) * fator_sorte_def) # 0.2% da força inimiga mata suas tropas
+    baixas_defensor = int((forca_efetiva_atk * 0.002) * fator_sorte_atk)
 
-    # Atualizar forcas
-    guerra["forca_atacante"] -= prejuizo_atacante
-    guerra["forca_defensora"] -= prejuizo_defensor
-
-    # Atualizar paises
-    atacante["militar"] = max(0, int(guerra["forca_atacante"]))
-    defensor["militar"] = max(0, int(guerra["forca_defensora"]))
-
-    # Verificar se alguém se rendeu ou perder e transfere recursos
-    if guerra["forca_defensora"] < guerra["forca_atacante"] * RENDICAO_LIMIAR:
+    # Aplica baixas (garantindo que não fique negativo)
+    atacante["militar"] = max(0, atacante["militar"] - baixas_atacante)
+    defensor["militar"] = max(0, defensor["militar"] - baixas_defensor)
+    
+    guerra["dias_de_guerra"] += 1
+    
+    # 4. Verificação de Aniquilação / Anexação
+    # Se o defensor for aniquilado (ou cair abaixo de um limiar crítico irrelevante)
+    if defensor["militar"] <= MIN_TROOPS_FOR_WAR:
         guerra["em_andamento"] = False
-        guerra["log_guerra"].append(f"Turno {guerra['turno_atual']}: {defensor['name']} se rendeu!")
-
-        # Transferir recursos
-        pib_transferido = round(defensor["pib"] * 0.4)
-        territorios_transferidos = defensor["territorios"]
-
-        atacante["pib"] += pib_transferido
-        atacante["territorios"] += territorios_transferidos
-        atacante['militar'] += defensor["militar"] * 0.2
-
-        defensor["pib"] -= pib_transferido
+        
+        # Lógica de Anexação:
+        # "trazendo uma parte do seu pib, e 99% da sua população, contando que 1% vai fugir"
+        
+        pib_anexado = defensor["pib"] * 0.5 # Exemplo: 50% do PIB é capturado (infraestrutura, recursos)
+        pop_anexada = int(defensor["pop_est"] * 0.99)
+        pop_fugitiva = defensor["pop_est"] - pop_anexada
+        
+        atacante["pib"] += pib_anexado
+        atacante["pop_est"] += pop_anexada
+        atacante["territorios"] += defensor["territorios"]
+        
+        # O defensor deixa de existir como entidade soberana
+        defensor["pib"] = 0
+        defensor["pop_est"] = 0
         defensor["territorios"] = 0
-        defensor["color"] = atacante["color"]  # País conquistado
+        defensor["militar"] = 0
+        defensor["color"] = atacante["color"]
+        
+        msg = f"{defensor['name']} foi completamente ANEXADO por {atacante['name']}! Exército aniquilado."
+        guerra["log_guerra"].append(msg)
+        return msg, True, True
 
-        return f"{defensor['name']} se rendeu para {atacante['name']}! Território anexado.", True
-
-    # Verificar se o atacante desistiu
-    if guerra["forca_atacante"] < guerra["forca_defensora"] * 0.2:
+    # Se o atacante for aniquilado
+    elif atacante["militar"] <= MIN_TROOPS_FOR_WAR:
         guerra["em_andamento"] = False
-        guerra["log_guerra"].append(f"Turno {guerra['turno_atual']}: {atacante['name']} recuou!")
+        msg = f"A invasão de {atacante['name']} FALHOU! Seu exército foi destruído."
+        guerra["log_guerra"].append(msg)
+        return msg, True, False
 
-        # Penalidade para o atacante
-        atacante["pib"] -= atacante["pib"] * 0.1
-        atacante["militar"] -= atacante["militar"] * 0.1
-
-        return f"{atacante['name']} recuou da invasão a {defensor['name']}!", False
-
-    # Avançar turno
-    guerra["turno_atual"] += 1
-
-    # Verificar se a guerra chegou ao limite de turnos
-    if guerra["turno_atual"] > guerra["max_turnos"]:
-        guerra["em_andamento"] = False
-        guerra["log_guerra"].append(f"A guerra terminou após {guerra['max_turnos']} turnos")
-
-        # Determinar vencedor pelo poder militar restante
-        if guerra["forca_atacante"] > guerra["forca_defensora"]:
-            # Ganhos parciais para o atacante
-            pib_transferido = defensor["pib"] * 0.2
-            territorios_transferidos = int(defensor["territorios"] * 0.3)
-
-            atacante["pib"] += pib_transferido
-            atacante["territorios"] += territorios_transferidos
-
-            defensor["pib"] -= pib_transferido
-            defensor["territorios"] -= territorios_transferidos
-
-            return f"Vitória de {atacante['name']} após uma guerra prolongada!", True
-        else:
-            return f"{defensor['name']} defendeu seu território com sucesso!", False
-
-    # Retornar log do turno atual
-    log = f"Turno {guerra['turno_atual'] - 1}: {atacante['name']} {prejuizo_atacante} perdas, {defensor['name']} {prejuizo_defensor} perdas"
-    guerra["log_guerra"].append(log)
-    return log, False
+    # Log diário (opcional, pode ser muito spam se for todo dia)
+    # Vamos retornar log apenas a cada 7 dias ou se houver grandes perdas
+    if guerra["dias_de_guerra"] % 7 == 0:
+        return f"Dia {guerra['dias_de_guerra']}: Baixas - {atacante['name']}: {baixas_atacante}, {defensor['name']}: {baixas_defensor}", False, False
+    
+    return None, False, False

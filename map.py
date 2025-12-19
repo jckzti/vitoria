@@ -7,14 +7,15 @@ from power_country import generate_military_power
 from utils.country_utils import CountryUtils
 from utils.formatters import Formatters
 from utils.ui import Button, ContextMenu
+from game_time import GameTime
 
 # Inicializa o Pygame
 pygame.init()
 
 # Configurações da janela
-window_size = (2980, 1200)
-screen = pygame.display.set_mode(window_size)
-pygame.display.set_caption("Jogo de Estratégia Geopolítica")
+window_size = (1600, 900) # Adjusted to a more standard resolution, user can maximize
+screen = pygame.display.set_mode(window_size, pygame.RESIZABLE)
+pygame.display.set_caption("Jogo de Estratégia Geopolítica - Victoria Style")
 
 # Cores
 WHITE = (255, 255, 255)
@@ -22,6 +23,7 @@ LIGHT_SEA_BLUE = (173, 216, 230)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
+GRAY = (200, 200, 200)
 
 # Dicionário para armazenar as coordenadas e propriedades dos países
 country_shapes = {}
@@ -34,6 +36,11 @@ font = pygame.font.Font(None, 24)
 player_country = None    # País com o qual o jogador está jogando
 inspected_country = None # País atualmente clicado/focado pelo jogador
 hovered_country = None   # País sob o cursor do mouse
+guerras_ativas = []
+battle_log = ""
+
+# Sistema de Tempo
+game_time = GameTime()
 
 # UI Elements
 btn_choose_country = Button(
@@ -42,6 +49,15 @@ btn_choose_country = Button(
 )
 
 context_menu = ContextMenu(font)
+
+# Time Controls UI
+btn_pause = Button(window_size[0] - 100, 20, 80, 40, "PAUSE", font, bg_color=(200, 50, 50), text_color=WHITE)
+time_buttons = []
+speeds = [1, 3, 5, 10]
+for i, speed in enumerate(speeds):
+    btn = Button(window_size[0] - 320 + (i * 50), 20, 40, 40, f"{speed}x", font, bg_color=(100, 100, 100), text_color=WHITE)
+    time_buttons.append({'btn': btn, 'value': i, 'action': 'speed'})
+
 
 # Função para gerar uma cor aleatória
 def generate_random_color():
@@ -58,12 +74,10 @@ def load_geojson(filename):
         properties = feature['properties']
 
         # Dados geopolíticos iniciais (poder militar, PIB, etc.)
-        # properties['militar'] = random.randint(50, 100)
         properties['militar'] = generate_military_power(feature['properties'])
-        # properties['pib'] = random.uniform(0.5, 2.0)
-        properties['pib'] = properties['gdp_md']
+        properties['pib'] = properties.get('gdp_md', 0)
         properties['territorios'] = 1
-
+        properties['pop_est'] = properties.get('pop_est', 0) # Ensure population is set
 
         # Gera uma cor aleatória para o país
         color = generate_random_color()
@@ -93,8 +107,11 @@ def load_geojson(filename):
 
 def refresh_country_colors():
     for country_name, shapes in country_shapes.items():
-        new_color = country_info[tuple(shapes[0][0])]["color"]  # Pega a cor atual do país
-        country_shapes[country_name] = [(points, new_color) for points, _ in shapes]
+        # Encontra a primeira forma para pegar a cor atualizada nas propriedades
+        first_shape_points = shapes[0][0]
+        if tuple(first_shape_points) in country_info:
+            new_color = country_info[tuple(first_shape_points)]["color"]
+            country_shapes[country_name] = [(points, new_color) for points, _ in shapes]
 
 
 # Função para desenhar os países no Pygame
@@ -112,6 +129,36 @@ def get_country_info_at(x, y):
             return properties
     return None
 
+
+def show_time_controls():
+    # Update buttons color based on state
+    if game_time.paused:
+        btn_pause.text = "PLAY"
+        btn_pause.bg_color = (0, 200, 0) # Green for Play
+    else:
+        btn_pause.text = "PAUSE"
+        btn_pause.bg_color = (200, 50, 50) # Red for Pause
+    
+    btn_pause.draw(screen)
+        
+    for item in time_buttons:
+        if item['action'] == 'speed':
+            # Highlight current speed
+            if item['value'] == game_time.current_speed_index:
+                item['btn'].bg_color = (50, 150, 255) # Blue active
+            else:
+                item['btn'].bg_color = (100, 100, 100) # Gray inactive
+                
+        item['btn'].draw(screen)
+
+    # Show Date
+    date_surf = font.render(f"DATA: {game_time.get_date_string()}", True, BLACK)
+    # Position to the left of speed buttons
+    bg_rect = date_surf.get_rect(topright=(window_size[0] - 340, 25))
+    bg_rect.inflate_ip(20, 10) # Add padding
+    pygame.draw.rect(screen, (240, 240, 240), bg_rect)
+    pygame.draw.rect(screen, BLACK, bg_rect, 1)
+    screen.blit(date_surf, (bg_rect.x + 10, bg_rect.y + 5))
 
 def show_info():
     """Mostra as informações do país que o jogador controla."""
@@ -191,19 +238,43 @@ load_geojson('custom.geo.json')
 
 # Loop principal do jogo
 running = True
-battle_log = ""
-guerras_ativas = []
+clock = pygame.time.Clock()
 
 while running:
+    # Delta time in seconds
+    dt = clock.tick(60) / 1000.0
+
+    # Update Game Logic
+    new_day = game_time.update(dt)
+    
+    if new_day:
+        # Process active wars
+        for guerra in guerras_ativas:
+            if guerra["em_andamento"]:
+                if guerra["data_inicio"] is None:
+                    guerra["data_inicio"] = game_time.get_date_string()
+                
+                resultado, fim_guerra, change_color = war_system.processar_dia_guerra(guerra, country_info)
+                
+                if resultado:
+                    # Log update
+                    battle_log = f"[{game_time.get_date_string()}] {resultado}"
+                    if change_color:
+                        refresh_country_colors()
+
+    # Draw
     screen.fill(LIGHT_SEA_BLUE)
     draw_countries(screen)
     
     show_info()
     show_hovered_info()
     show_battle_log(battle_log)
+    show_time_controls()
     
     # Desenha botão de escolher se houver um país inspecionado e ele não for o atual
     if inspected_country and inspected_country != player_country:
+        # Re-update button position if window size changed (optional, keeping simple for now)
+        btn_choose_country.rect.topleft = (window_size[0] - 220, window_size[1] - 80)
         btn_choose_country.draw(screen)
 
     # Desenha menu de contexto
@@ -212,6 +283,15 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        
+        elif event.type == pygame.VIDEORESIZE:
+             window_size = event.size
+             screen = pygame.display.set_mode(window_size, pygame.RESIZABLE)
+             # Update UI positions relative to screen
+             btn_choose_country.rect.topleft = (window_size[0] - 220, window_size[1] - 80)
+             btn_pause.rect.topleft = (window_size[0] - 100, 20)
+             for i, item in enumerate(time_buttons):
+                 item['btn'].rect.topleft = (window_size[0] - 320 + (i * 50), 20)
         
         # Click Handling
         elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -225,27 +305,39 @@ while running:
                         guerras_ativas.append(nova_guerra)
                         battle_log = f"Guerra iniciada: {player_country['name']} vs {inspected_country['name']}"
 
-                # 2. Check UI Interaction (Choose Button)
-                elif inspected_country and inspected_country != player_country and btn_choose_country.is_clicked(event):
-                    player_country = inspected_country
-                    battle_log = f"Você escolheu jogar com: {player_country['name']}"
-                    inspected_country = None # Limpa a inspeção após escolher
-
-                # 3. Check Map Interaction (Select/Inspect Country)
+                # 2. Check UI Interaction (Time Controls)
+                elif btn_pause.is_clicked(event):
+                    game_time.toggle_pause()
                 else:
-                    # Se clicou fora do menu, ele já fecha (no handle_click)
-                    # Verifica se clicou num país
-                    country_properties = get_country_info_at(*event.pos)
-                    if country_properties:
-                        inspected_country = country_properties
-                        # Se clicar num país, fecha menu anterior se existir (já feito pelo handle_click logicamente, mas garantindo)
-                        context_menu.hide()
+                    speed_clicked = False
+                    for item in time_buttons:
+                        if item['btn'].is_clicked(event):
+                            game_time.set_speed(item['value'])
+                            speed_clicked = True
+                            break
+                    
+                    if not speed_clicked:
+                        # 3. Check UI Interaction (Choose Button)
+                        if inspected_country and inspected_country != player_country and btn_choose_country.is_clicked(event):
+                            player_country = inspected_country
+                            battle_log = f"Você escolheu jogar com: {player_country['name']}"
+                            inspected_country = None # Limpa a inspeção após escolher
+
+                        # 4. Check Map Interaction (Select/Inspect Country)
+                        else:
+                            # Se clicou fora do menu, ele já fecha (no handle_click)
+                            # Verifica se clicou num país
+                            country_properties = get_country_info_at(*event.pos)
+                            if country_properties:
+                                inspected_country = country_properties
+                                # Se clicar num país, fecha menu anterior se existir
+                                context_menu.hide()
 
             elif event.button == 3:  # Right Click
                 if player_country:
                     country_properties = get_country_info_at(*event.pos)
                     if country_properties and country_properties != player_country:
-                        # Define este país como o inspecionado também, para facilitar
+                        # Define este país como o inspecionado também
                         inspected_country = country_properties
                         
                         # Abre menu de contexto
@@ -261,17 +353,18 @@ while running:
             else:
                 hovered_country = None
         
-        # Key Handling (Apenas atalhos globais úteis, sem ações de jogo escondidas)
+        # Key Handling (Atalhos de teclado opcionais)
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_z:
-                # Avança as guerras existentes (Manter este por enquanto, talvez adicionar botão depois)
-                for guerra in guerras_ativas:
-                    if guerra["em_andamento"]:
-                        resultado, change_color = war_system.calcular_turno_guerra(guerra, country_info)
-                        if resultado:
-                            battle_log = resultado
-                            if change_color:
-                                refresh_country_colors()
+            if event.key == pygame.K_SPACE:
+                game_time.toggle_pause()
+            elif event.key == pygame.K_1:
+                game_time.set_speed(0) # 1x
+            elif event.key == pygame.K_2:
+                game_time.set_speed(1) # 3x
+            elif event.key == pygame.K_3:
+                game_time.set_speed(2) # 5x
+            elif event.key == pygame.K_4:
+                game_time.set_speed(3) # 10x
 
     pygame.display.flip()
 

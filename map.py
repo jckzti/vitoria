@@ -1,6 +1,7 @@
 import pygame
 import json
 import random
+import os
 from shapely.geometry import shape, Point, Polygon, MultiPolygon
 import war_system
 import economy_system
@@ -29,6 +30,7 @@ GRAY = (200, 200, 200)
 # Dicionário para armazenar as coordenadas e propriedades dos países
 country_shapes = {}
 country_info = {}
+flag_cache = {}
 
 # Fonte para textos
 font = pygame.font.Font(None, 24)
@@ -124,6 +126,29 @@ def refresh_country_colors():
             new_color = country_info[tuple(first_shape_points)]["color"]
             country_shapes[country_name] = [(points, new_color) for points, _ in shapes]
 
+def get_flag_image(iso_code):
+    if not iso_code or iso_code == -99:
+        return None
+    
+    iso_code = str(iso_code).lower()
+    if iso_code in flag_cache:
+        return flag_cache[iso_code]
+    
+    path = os.path.join("assets", "flags", f"{iso_code}.png")
+    if os.path.exists(path):
+        try:
+            img = pygame.image.load(path)
+            # Redimensiona para algo razoável (largura 50)
+            w = 50
+            ratio = img.get_height() / img.get_width()
+            h = int(w * ratio)
+            img = pygame.transform.smoothscale(img, (w, h))
+            flag_cache[iso_code] = img
+            return img
+        except:
+            return None
+    return None
+
 # Coordinate Transformations
 def world_to_screen(x, y):
     return (int(x * zoom_scale + camera_offset_x), int(y * zoom_scale + camera_offset_y))
@@ -203,6 +228,8 @@ def show_info():
         pib_unity = Formatters().get_pib_unity(pib)
         military_power = Formatters().format_number(str(player_country['militar']))
 
+        flag = get_flag_image(player_country.get('iso_a2'))
+        
         info_text = [
             f"JOGANDO COM: {player_country['name'].upper()}",
             f"PIB: {pib} {pib_unity}",
@@ -213,8 +240,17 @@ def show_info():
         
         # Desenha um fundo semi-transparente ou sólido para destacar
         bg_rect = pygame.Rect(10, 10, 300, 20 + len(info_text) * 20)
+        # Aumenta altura se tiver bandeira e ela for maior que o espaço de texto (raro, mas bom garantir)
+        if flag:
+            # Espaço extra para a bandeira no topo se quiser, ou ao lado.
+            # Vamos colocar a bandeira no canto superior direito do box.
+            pass
+
         pygame.draw.rect(screen, (240, 240, 240), bg_rect)
         pygame.draw.rect(screen, BLACK, bg_rect, 2)
+
+        if flag:
+            screen.blit(flag, (bg_rect.right - flag.get_width() - 10, bg_rect.top + 10))
 
         for i, line in enumerate(info_text):
             text = font.render(line, True, BLACK)
@@ -230,6 +266,8 @@ def show_hovered_info():
         pib = CountryUtils.get_pib(country=target)
         pib_unity = Formatters().get_pib_unity(pib)
         military_power = Formatters().format_number(str(target['militar']))
+        
+        flag = get_flag_image(target.get('iso_a2'))
 
         header = "INSPECIONANDO:" if target == inspected_country else "HOVER:"
         
@@ -246,6 +284,10 @@ def show_hovered_info():
         bg_rect = pygame.Rect(10, start_y - 10, 300, 20 + len(info_text) * 20)
         pygame.draw.rect(screen, (240, 240, 240), bg_rect)
         pygame.draw.rect(screen, BLACK, bg_rect, 2)
+
+        if flag:
+            # Desenha bandeira no topo direito do box
+            screen.blit(flag, (bg_rect.right - flag.get_width() - 10, bg_rect.top + 10))
 
         for i, line in enumerate(info_text):
             text = font.render(line, True, BLACK)
@@ -323,13 +365,13 @@ while running:
             running = False
         
         elif event.type == pygame.VIDEORESIZE:
-             window_size = event.size
-             screen = pygame.display.set_mode(window_size, pygame.RESIZABLE)
-             # Update UI positions relative to screen
-             btn_choose_country.rect.topleft = (window_size[0] - 220, window_size[1] - 80)
-             btn_pause.rect.topleft = (window_size[0] - 100, 20)
-             for i, item in enumerate(time_buttons):
-                 item['btn'].rect.topleft = (window_size[0] - 320 + (i * 50), 20)
+            window_size = event.size
+            screen = pygame.display.set_mode(window_size, pygame.RESIZABLE)
+            # Update UI positions relative to screen
+            btn_choose_country.rect.topleft = (window_size[0] - 220, window_size[1] - 80)
+            btn_pause.rect.topleft = (window_size[0] - 100, 20)
+            for i, item in enumerate(time_buttons):
+                item['btn'].rect.topleft = (window_size[0] - 320 + (i * 50), 20)
         
         elif event.type == pygame.MOUSEWHEEL:
             # Zoom logic

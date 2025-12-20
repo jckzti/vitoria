@@ -15,7 +15,7 @@ from game_time import GameTime
 pygame.init()
 
 # Configurações da janela
-window_size = (1600, 900) # Adjusted to a more standard resolution, user can maximize
+window_size = (1600, 900)  # Adjusted to a more standard resolution, user can maximize
 screen = pygame.display.set_mode(window_size, pygame.RESIZABLE)
 pygame.display.set_caption("Jogo de Estratégia Geopolítica - Victoria Style")
 
@@ -36,9 +36,9 @@ flag_cache = {}
 font = pygame.font.Font(None, 24)
 
 # Estado do Jogo
-player_country = None    # País com o qual o jogador está jogando
-inspected_country = None # País atualmente clicado/focado pelo jogador
-hovered_country = None   # País sob o cursor do mouse
+player_country = None  # País com o qual o jogador está jogando
+inspected_country = None  # País atualmente clicado/focado pelo jogador
+hovered_country = None  # País sob o cursor do mouse
 guerras_ativas = []
 battle_log = ""
 
@@ -67,7 +67,8 @@ btn_pause = Button(window_size[0] - 100, 20, 80, 40, "PAUSE", font, bg_color=(20
 time_buttons = []
 speeds = [1, 3, 5, 10]
 for i, speed in enumerate(speeds):
-    btn = Button(window_size[0] - 320 + (i * 50), 20, 40, 40, f"{speed}x", font, bg_color=(100, 100, 100), text_color=WHITE)
+    btn = Button(window_size[0] - 320 + (i * 50), 20, 40, 40, f"{speed}x", font, bg_color=(100, 100, 100),
+                 text_color=WHITE)
     time_buttons.append({'btn': btn, 'value': i, 'action': 'speed'})
 
 
@@ -89,7 +90,7 @@ def load_geojson(filename):
         properties['militar'] = generate_military_power(feature['properties'])
         properties['pib'] = properties.get('gdp_md', 0)
         properties['territorios'] = 1
-        properties['pop_est'] = properties.get('pop_est', 0) # Ensure population is set
+        properties['pop_est'] = properties.get('pop_est', 0)  # Ensure population is set
 
         # Gera uma cor aleatória para o país
         color = generate_random_color()
@@ -126,17 +127,18 @@ def refresh_country_colors():
             new_color = country_info[tuple(first_shape_points)]["color"]
             country_shapes[country_name] = [(points, new_color) for points, _ in shapes]
 
+
 def get_flag_image(properties):
     if not properties:
         return None
-        
+
     # Tenta vários códigos ISO possíveis
     candidates = []
-    
+
     # 1. iso_a2 (padrão)
     if 'iso_a2' in properties and properties['iso_a2'] != -99 and properties['iso_a2'] != "-99":
         candidates.append(str(properties['iso_a2']).lower())
-        
+
     # 2. iso_a2_eh (fallback comum)
     if 'iso_a2_eh' in properties and properties['iso_a2_eh'] != -99 and properties['iso_a2_eh'] != "-99":
         candidates.append(str(properties['iso_a2_eh']).lower())
@@ -144,11 +146,11 @@ def get_flag_image(properties):
     # 3. wb_a2 (World Bank)
     if 'wb_a2' in properties and properties['wb_a2'] != -99 and properties['wb_a2'] != "-99":
         candidates.append(str(properties['wb_a2']).lower())
-        
+
     for iso_code in candidates:
         if iso_code in flag_cache:
             return flag_cache[iso_code]
-        
+
         path = os.path.join("assets", "flags", f"{iso_code}.png")
         if os.path.exists(path):
             try:
@@ -173,15 +175,18 @@ def get_flag_image(properties):
                 except:
                     print(f"DEBUG: Error loading flag {path}: {e}")
                     continue
-                
+
     return None
+
 
 # Coordinate Transformations
 def world_to_screen(x, y):
     return (int(x * zoom_scale + camera_offset_x), int(y * zoom_scale + camera_offset_y))
 
+
 def screen_to_world(x, y):
     return ((x - camera_offset_x) / zoom_scale, (y - camera_offset_y) / zoom_scale)
+
 
 # Função para desenhar os países no Pygame
 def draw_countries(screen):
@@ -189,17 +194,17 @@ def draw_countries(screen):
         for shape_data, color in shapes:
             # Transform points to screen space
             transformed_points = [world_to_screen(p[0], p[1]) for p in shape_data]
-            
+
             # Simple culling: check if any point is within screen bounds + padding
             # This is a very rough optimization
             xs = [p[0] for p in transformed_points]
             ys = [p[1] for p in transformed_points]
             min_x, max_x = min(xs), max(xs)
             min_y, max_y = min(ys), max(ys)
-            
+
             if max_x < 0 or min_x > window_size[0] or max_y < 0 or min_y > window_size[1]:
                 continue
-                
+
             pygame.draw.polygon(screen, color, transformed_points, 0)  # Preenche o polígono com a cor
 
 
@@ -208,7 +213,7 @@ def get_country_info_at(screen_x, screen_y):
     # Convert screen click to world coordinates
     world_x, world_y = screen_to_world(screen_x, screen_y)
     point = Point(world_x, world_y)
-    
+
     for shape_data, properties in country_info.items():
         # Polygon creation is heavy, but Shapely is reasonably fast for point-in-polygon
         # Optimization: Check bounding box of shape_data first if needed
@@ -221,31 +226,32 @@ def show_time_controls():
     # Update buttons color based on state
     if game_time.paused:
         btn_pause.text = "PLAY"
-        btn_pause.bg_color = (0, 200, 0) # Green for Play
+        btn_pause.bg_color = (0, 200, 0)  # Green for Play
     else:
         btn_pause.text = "PAUSE"
-        btn_pause.bg_color = (200, 50, 50) # Red for Pause
-    
+        btn_pause.bg_color = (200, 50, 50)  # Red for Pause
+
     btn_pause.draw(screen)
-        
+
     for item in time_buttons:
         if item['action'] == 'speed':
             # Highlight current speed
             if item['value'] == game_time.current_speed_index:
-                item['btn'].bg_color = (50, 150, 255) # Blue active
+                item['btn'].bg_color = (50, 150, 255)  # Blue active
             else:
-                item['btn'].bg_color = (100, 100, 100) # Gray inactive
-                
+                item['btn'].bg_color = (100, 100, 100)  # Gray inactive
+
         item['btn'].draw(screen)
 
     # Show Date
     date_surf = font.render(f"DATA: {game_time.get_date_string()}", True, BLACK)
     # Position to the left of speed buttons
     bg_rect = date_surf.get_rect(topright=(window_size[0] - 340, 25))
-    bg_rect.inflate_ip(20, 10) # Add padding
+    bg_rect.inflate_ip(20, 10)  # Add padding
     pygame.draw.rect(screen, (240, 240, 240), bg_rect)
     pygame.draw.rect(screen, BLACK, bg_rect, 1)
     screen.blit(date_surf, (bg_rect.x + 10, bg_rect.y + 5))
+
 
 def show_info():
     """Mostra as informações do país que o jogador controla."""
@@ -256,7 +262,7 @@ def show_info():
         military_power = Formatters().format_number(str(player_country['militar']))
 
         flag = get_flag_image(player_country)
-        
+
         info_text = [
             f"JOGANDO COM: {player_country['name'].upper()}",
             f"PIB: {pib} {pib_unity}",
@@ -264,7 +270,7 @@ def show_info():
             f"Territórios: {player_country['territorios']}",
             f"População: {population}"
         ]
-        
+
         # Desenha um fundo semi-transparente ou sólido para destacar
         bg_rect = pygame.Rect(10, 10, 300, 20 + len(info_text) * 20)
         # Aumenta altura se tiver bandeira e ela for maior que o espaço de texto (raro, mas bom garantir)
@@ -283,21 +289,22 @@ def show_info():
             text = font.render(line, True, BLACK)
             screen.blit(text, (20, 20 + i * 20))
 
+
 def show_hovered_info():
     """Mostra as informações do país sob o mouse ou inspecionado."""
     # Prioridade: País inspecionado (clicado) > País sob o mouse
     target = inspected_country if inspected_country else hovered_country
-    
+
     if target:
         population = CountryUtils.get_pop(country=target)
         pib = CountryUtils.get_pib(country=target)
         pib_unity = Formatters().get_pib_unity(pib)
         military_power = Formatters().format_number(str(target['militar']))
-        
+
         flag = get_flag_image(target)
 
         header = "INSPECIONANDO:" if target == inspected_country else "HOVER:"
-        
+
         info_text = [
             f"{header} {target['name_pt'] if 'name_pt' in target else target['name']}",
             f"PIB: {pib} {pib_unity}",
@@ -305,7 +312,7 @@ def show_hovered_info():
             f"Territórios: {target['territorios']}",
             f"População: {population}",
         ]
-        
+
         # Posição inferior esquerda
         start_y = window_size[1] - 150
         bg_rect = pygame.Rect(10, start_y - 10, 300, 20 + len(info_text) * 20)
@@ -328,12 +335,12 @@ def show_battle_log(log):
     battle_text = font.render(log, True, BLACK)
     # Centralizado na parte inferior
     text_rect = battle_text.get_rect(center=(window_size[0] // 2, window_size[1] - 40))
-    
+
     # Fundo para leitura
     bg_rect = text_rect.inflate(20, 10)
     pygame.draw.rect(screen, (255, 255, 255), bg_rect)
     pygame.draw.rect(screen, BLACK, bg_rect, 1)
-    
+
     screen.blit(battle_text, text_rect)
 
 
@@ -350,7 +357,7 @@ while running:
 
     # Update Game Logic
     new_day = game_time.update(dt)
-    
+
     if new_day:
         # Process economy and military growth
         economy_system.processar_crescimento_diario(country_info)
@@ -360,9 +367,9 @@ while running:
             if guerra["em_andamento"]:
                 if guerra["data_inicio"] is None:
                     guerra["data_inicio"] = game_time.get_date_string()
-                
+
                 resultado, fim_guerra, change_color = war_system.processar_dia_guerra(guerra, country_info)
-                
+
                 if resultado:
                     # Log update
                     battle_log = f"[{game_time.get_date_string()}] {resultado}"
@@ -372,12 +379,12 @@ while running:
     # Draw
     screen.fill(LIGHT_SEA_BLUE)
     draw_countries(screen)
-    
+
     show_info()
     show_hovered_info()
     show_battle_log(battle_log)
     show_time_controls()
-    
+
     # Desenha botão de escolher se houver um país inspecionado e ele não for o atual
     if inspected_country and inspected_country != player_country:
         # Re-update button position if window size changed (optional, keeping simple for now)
@@ -390,7 +397,7 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        
+
         elif event.type == pygame.VIDEORESIZE:
             window_size = event.size
             screen = pygame.display.set_mode(window_size, pygame.RESIZABLE)
@@ -399,7 +406,7 @@ while running:
             btn_pause.rect.topleft = (window_size[0] - 100, 20)
             for i, item in enumerate(time_buttons):
                 item['btn'].rect.topleft = (window_size[0] - 320 + (i * 50), 20)
-        
+
         elif event.type == pygame.MOUSEWHEEL:
             # Zoom logic
             old_zoom = zoom_scale
@@ -407,13 +414,13 @@ while running:
                 zoom_scale *= 1.1
             elif event.y < 0:
                 zoom_scale /= 1.1
-            
+
             # Clamp zoom
             zoom_scale = max(min_zoom, min(zoom_scale, max_zoom))
-            
+
             # Zoom towards mouse cursor
             mouse_x, mouse_y = pygame.mouse.get_pos()
-            
+
             # Adjust offset so the point under mouse stays stationary
             # formula: new_offset = mouse - (mouse - old_offset) * (new_zoom / old_zoom)
             camera_offset_x = mouse_x - (mouse_x - camera_offset_x) * (zoom_scale / old_zoom)
@@ -426,7 +433,7 @@ while running:
                 action = context_menu.handle_click(event)
                 if action == 'attack':
                     if player_country and inspected_country and player_country != inspected_country:
-                         # Inicia a guerra
+                        # Inicia a guerra
                         nova_guerra = war_system.iniciar_guerra(player_country, inspected_country)
                         guerras_ativas.append(nova_guerra)
                         battle_log = f"Guerra iniciada: {player_country['name']} vs {inspected_country['name']}"
@@ -441,13 +448,14 @@ while running:
                             game_time.set_speed(item['value'])
                             speed_clicked = True
                             break
-                    
+
                     if not speed_clicked:
                         # 3. Check UI Interaction (Choose Button)
-                        if inspected_country and inspected_country != player_country and btn_choose_country.is_clicked(event):
+                        if inspected_country and inspected_country != player_country and btn_choose_country.is_clicked(
+                                event):
                             player_country = inspected_country
                             battle_log = f"Você escolheu jogar com: {player_country['name']}"
-                            inspected_country = None # Limpa a inspeção após escolher
+                            inspected_country = None  # Limpa a inspeção após escolher
 
                         # 4. Check Map Interaction (Select/Inspect Country)
                         else:
@@ -465,13 +473,13 @@ while running:
                     if country_properties and country_properties != player_country:
                         # Define este país como o inspecionado também
                         inspected_country = country_properties
-                        
+
                         # Abre menu de contexto
                         context_menu.show(event.pos, [
                             {'text': 'Atacar', 'action': 'attack'}
                         ])
-            
-            elif event.button == 2: # Middle click to start drag
+
+            elif event.button == 2:  # Middle click to start drag
                 dragging = True
                 last_mouse_pos = event.pos
 
@@ -494,19 +502,19 @@ while running:
                     hovered_country = country_properties
                 else:
                     hovered_country = None
-        
+
         # Key Handling (Atalhos de teclado opcionais)
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 game_time.toggle_pause()
             elif event.key == pygame.K_1:
-                game_time.set_speed(0) # 1x
+                game_time.set_speed(0)  # 1x
             elif event.key == pygame.K_2:
-                game_time.set_speed(1) # 3x
+                game_time.set_speed(1)  # 3x
             elif event.key == pygame.K_3:
-                game_time.set_speed(2) # 5x
+                game_time.set_speed(2)  # 5x
             elif event.key == pygame.K_4:
-                game_time.set_speed(3) # 10x
+                game_time.set_speed(3)  # 10x
 
     pygame.display.flip()
 

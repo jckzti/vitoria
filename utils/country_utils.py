@@ -1,8 +1,16 @@
 class CountryUtils:
     @staticmethod
     def get_pib(country: []):
-        return f"{country['pib']:,}".replace(",", ".")
+        try:
+            val = int(float(country.get('pib', 0)))
+        except (ValueError, TypeError):
+            val = 0
+        return f"{val:,}".replace(",", ".")
 
     @staticmethod
     def get_pop(country: []):
-        return f"{country['pop_est']:,}".replace(",", ".")
+        try:
+            val = int(float(country.get('pop_est', 0)))
+        except (ValueError, TypeError):
+            val = 0
+        return f"{val:,}".replace(",", ".")

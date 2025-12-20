@@ -1,0 +1,92 @@
+{
+    "default": {
+        "gdp_growth_mean": 2.5,
+        "gdp_volatility": 1.0,
+        "pop_growth_mean": 1.0,
+        "pop_volatility": 0.2
+    },
+    "us": {
+        "name": "United States",
+        "gdp_growth_mean": 2.1,
+        "gdp_volatility": 0.8,
+        "pop_growth_mean": 0.5,
+        "pop_volatility": 0.1
+    },
+    "cn": {
+        "name": "China",
+        "gdp_growth_mean": 4.5,
+        "gdp_volatility": 1.2,
+        "pop_growth_mean": -0.1,
+        "pop_volatility": 0.1
+    },
+    "in": {
+        "name": "India",
+        "gdp_growth_mean": 6.0,
+        "gdp_volatility": 1.5,
+        "pop_growth_mean": 0.9,
+        "pop_volatility": 0.2
+    },
+    "br": {
+        "name": "Brazil",
+        "gdp_growth_mean": 2.0,
+        "gdp_volatility": 1.8,
+        "pop_growth_mean": 0.6,
+        "pop_volatility": 0.2
+    },
+    "de": {
+        "name": "Germany",
+        "gdp_growth_mean": 1.1,
+        "gdp_volatility": 0.9,
+        "pop_growth_mean": 0.1,
+        "pop_volatility": 0.1
+    },
+    "jp": {
+        "name": "Japan",
+        "gdp_growth_mean": 0.8,
+        "gdp_volatility": 0.7,
+        "pop_growth_mean": -0.5,
+        "pop_volatility": 0.1
+    },
+    "ru": {
+        "name": "Russia",
+        "gdp_growth_mean": 1.5,
+        "gdp_volatility": 2.0,
+        "pop_growth_mean": -0.2,
+        "pop_volatility": 0.3
+    },
+    "ng": {
+        "name": "Nigeria",
+        "gdp_growth_mean": 3.0,
+        "gdp_volatility": 2.5,
+        "pop_growth_mean": 2.4,
+        "pop_volatility": 0.4
+    },
+    "et": {
+        "name": "Ethiopia",
+        "gdp_growth_mean": 5.5,
+        "gdp_volatility": 2.0,
+        "pop_growth_mean": 2.5,
+        "pop_volatility": 0.3
+    },
+    "vn": {
+        "name": "Vietnam",
+        "gdp_growth_mean": 5.8,
+        "gdp_volatility": 1.2,
+        "pop_growth_mean": 0.8,
+        "pop_volatility": 0.2
+    },
+    "ar": {
+        "name": "Argentina",
+        "gdp_growth_mean": 0.5,
+        "gdp_volatility": 4.0,
+        "pop_growth_mean": 0.9,
+        "pop_volatility": 0.2
+    },
+    "ve": {
+        "name": "Venezuela",
+        "gdp_growth_mean": -2.0,
+        "gdp_volatility": 5.0,
+        "pop_growth_mean": -0.5,
+        "pop_volatility": 0.5
+    }
+}

@@ -11,6 +11,7 @@ from utils.formatters import Formatters
 from utils.ui import Button, ContextMenu
 from game_time import GameTime
 from resource_system import ResourceSystem
+from growth_system import GrowthSystem
 
 # Inicializa o Pygame
 pygame.init()
@@ -57,6 +58,9 @@ game_time = GameTime()
 
 # Sistema de Recursos
 resource_system = ResourceSystem()
+
+# Sistema de Crescimento (PIB e População)
+growth_system = GrowthSystem()
 
 # UI Elements
 btn_choose_country = Button(
@@ -378,6 +382,9 @@ while running:
     if new_day:
         # Process economy and military growth
         economy_system.processar_crescimento_diario(country_info)
+        
+        # Process GDP and Population growth (dynamic)
+        growth_system.process_all_countries(country_info)
 
         # Process active wars
         for guerra in guerras_ativas:

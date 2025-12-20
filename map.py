@@ -10,6 +10,7 @@ from utils.country_utils import CountryUtils
 from utils.formatters import Formatters
 from utils.ui import Button, ContextMenu
 from game_time import GameTime
+from resource_system import ResourceSystem
 
 # Inicializa o Pygame
 pygame.init()
@@ -54,6 +55,9 @@ last_mouse_pos = (0, 0)
 # Sistema de Tempo
 game_time = GameTime()
 
+# Sistema de Recursos
+resource_system = ResourceSystem()
+
 # UI Elements
 btn_choose_country = Button(
     window_size[0] - 220, window_size[1] - 80, 200, 50,
@@ -91,6 +95,9 @@ def load_geojson(filename):
         properties['pib'] = properties.get('gdp_md', 0)
         properties['territorios'] = 1
         properties['pop_est'] = properties.get('pop_est', 0)  # Ensure population is set
+
+        # Carrega recursos do país
+        properties['resources'] = resource_system.get_country_resources(country_name)
 
         # Gera uma cor aleatória para o país
         color = generate_random_color()
@@ -263,12 +270,17 @@ def show_info():
 
         flag = get_flag_image(player_country)
 
+        # Prepara texto de recursos
+        res_list = player_country.get('resources', [])
+        res_icons = " ".join([resource_system.get_resource_icon(r) for r in res_list])
+
         info_text = [
             f"JOGANDO COM: {player_country['name'].upper()}",
             f"PIB: {pib} {pib_unity}",
             f"Militar: {military_power}",
             f"Territórios: {player_country['territorios']}",
-            f"População: {population}"
+            f"População: {population}",
+            f"Recursos: {res_icons if res_icons else 'Nenhum'}"
         ]
 
         # Desenha um fundo semi-transparente ou sólido para destacar
@@ -305,12 +317,17 @@ def show_hovered_info():
 
         header = "INSPECIONANDO:" if target == inspected_country else "HOVER:"
 
+        # Prepara texto de recursos
+        res_list = target.get('resources', [])
+        res_icons = " ".join([resource_system.get_resource_icon(r) for r in res_list])
+
         info_text = [
             f"{header} {target['name_pt'] if 'name_pt' in target else target['name']}",
             f"PIB: {pib} {pib_unity}",
             f"Militar: {military_power}",
             f"Territórios: {target['territorios']}",
             f"População: {population}",
+            f"Recursos: {res_icons if res_icons else 'Nenhum'}"
         ]
 
         # Posição inferior esquerda
